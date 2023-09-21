@@ -12,6 +12,7 @@
 #include "zathura.h"
 
 #include <gio/gio.h>
+#include <girara/internal.h>
 #include <girara/commands.h>
 #include <girara/session.h>
 #include <girara/settings.h>
@@ -438,6 +439,50 @@ handle_execute_command(zathura_t* zathura, GVariant* parameters, GDBusMethodInvo
 }
 
 static void
+handle_execute_shortcut_function(zathura_t* zathura, GVariant* parameters, GDBusMethodInvocation* invocation)
+{
+  girara_session_private_t* session_private = zathura->ui.session->private_data;
+
+  gchar* shortcut_function_string = NULL;
+  gchar* argument_string = NULL;
+  guint t = 0;
+
+  girara_shortcut_function_t shortcut_function;
+  girara_argument_t* argument = g_try_malloc0(sizeof(girara_argument_t));
+  argument -> data = NULL;
+
+  g_variant_get(parameters, "(ssu)", &shortcut_function_string, &argument_string, &t);
+
+  /* Get shortcut function whose identifier equals the function provided in parameters */
+  GIRARA_LIST_FOREACH_BODY(session_private->config.shortcut_mappings, girara_shortcut_mapping_t*, data,
+    if (g_strcmp0(data->identifier, shortcut_function_string) == 0) {
+      shortcut_function = data->function;
+      break;
+    }
+  );
+
+  /* Get argument whose identifier equals the argument provided in parameters */
+  GIRARA_LIST_FOREACH_BODY(session_private->config.argument_mappings, girara_argument_mapping_t*, mapping,
+    if (g_strcmp0(mapping->identifier, argument_string) == 0) {
+      argument->n = mapping->value;
+      break;
+    }
+  );
+
+  shortcut_function(zathura -> ui.session,
+                    argument,
+                    NULL,
+                    t);
+
+  g_free(shortcut_function_string);
+  g_free(argument_string);
+  g_free(argument);
+
+  GVariant* result = g_variant_new("(b)", true);
+  g_dbus_method_invocation_return_value(invocation, result);
+}
+
+static void
 handle_source_config(zathura_t* zathura, GVariant* GIRARA_UNUSED(parameters), GDBusMethodInvocation* invocation)
 {
   config_load_files(zathura);
@@ -482,6 +527,7 @@ handle_method_call(GDBusConnection* UNUSED(connection), const gchar* UNUSED(send
     {"HighlightRects", handle_highlight_rects, true, true},
     {"SynctexView", handle_synctex_view, true, true},
     {"ExecuteCommand", handle_execute_command, false, false},
+    {"ExecuteShortcutFunction", handle_execute_shortcut_function, false, false},
     {"SourceConfig", handle_source_config, false, false},
     {"SourceConfigFromDirectory", handle_source_config_from_dir, false, false},
   };

@@ -50,6 +50,16 @@
       <arg type='s' name='input' direction='in' />
       <arg type='b' name='return' direction='out' />
     </method>
+    <!--
+      Execute a shortcut function.
+      List of all shortcut functions can be found at the zathurarc manual.
+    -->
+    <method name='ExecuteShortcutFunction'>
+      <arg type='s' name='shortcut_function' direction='in' />
+      <arg type='s' name='argument' direction='in' />
+      <arg type='u' name='unsigned_int' direction='in' />
+      <arg type='b' name='return' direction='out' />
+    </method>
     <!-- Reload configuration file -->
     <method name='SourceConfig'>
       <arg type='b' name='return' direction='out' />
